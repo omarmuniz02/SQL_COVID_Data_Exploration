@@ -16,10 +16,7 @@ The workflow also produces a final reporting view designed for future visualizat
 ---
 
 ## Data Preparation (Views)
-
-The raw tables were imported with many columns stored as TEXT.  
-To support analysis, I created cleaned views that:
-
+The raw tables were imported with many columns stored as TEXT. To support analysis, I created cleaned views that:
 - Parsed dates stored as text (e.g., `2/24/20`)
 - Cast numeric fields safely using `NULLIF(..., '')::double precision`
 - Standardized fields for accurate joins between datasets
@@ -27,7 +24,6 @@ To support analysis, I created cleaned views that:
 ---
 
 ## Key Analysis Questions
-
 - How did infection rate vary by country (cases vs population)?
 - Which countries and continents had the highest total death counts?
 - What did global daily death rates look like over time?
@@ -39,7 +35,6 @@ To support analysis, I created cleaned views that:
 ## SQL Highlights
 
 ### Cleaned Deaths View
-
 ```sql
 CREATE VIEW covid_deaths_clean AS
 SELECT
@@ -51,10 +46,9 @@ SELECT
     NULLIF(new_cases, '')::double precision AS new_cases,
     total_deaths::double precision AS total_deaths
 FROM covid_deaths;
-## SQL Analysis Highlights
+```
 
 ### Cleaned Vaccines View
-
 ```sql
 CREATE VIEW covid_vaccines_clean AS
 SELECT
@@ -64,12 +58,9 @@ SELECT
 FROM covid_vaccines;
 ```
 
-This view standardizes vaccine data by parsing date fields and converting numeric values stored as text into usable numeric types.
-
 ---
 
 ### Highest Infection Rate by Country
-
 ```sql
 SELECT
     location,
@@ -81,12 +72,11 @@ GROUP BY location
 ORDER BY percentage_infected DESC;
 ```
 
-This query identifies countries with the highest infection rate relative to population.
+![Highest Infection Rate](images/infection_rate_top_countries.png)
 
 ---
 
 ### Global Daily Death Rate
-
 ```sql
 SELECT
     date,
@@ -98,12 +88,11 @@ GROUP BY date
 ORDER BY date;
 ```
 
-This query calculates global daily death rate by comparing summed daily deaths to summed new cases.
+![Global Daily Death Rate](images/global_death_rate_daily.png)
 
 ---
 
 ### Reporting View: Vaccination Rate (Join + Window Function)
-
 ```sql
 CREATE VIEW percentpopulation_vaccinated AS
 WITH vax AS (
@@ -119,7 +108,8 @@ WITH vax AS (
     JOIN covid_vaccines_clean AS vac
         ON dea.location = vac.location
         AND dea.date = vac.date
-    WHERE dea.continent IS NOT NULL AND dea.continent <> ''
+    WHERE dea.continent IS NOT NULL
+      AND dea.continent <> ''
 )
 SELECT
     continent,
@@ -132,4 +122,17 @@ SELECT
 FROM vax;
 ```
 
-This reporting view joins deaths and vaccination data, calculates a running cumulative vaccination total using a window function, and derives vaccination rate as a percentage of population.
+![US Vaccination View Output](images/us_vaccination_rate_view.png)
+
+---
+
+## Project Structure
+- `sql/covid_data_exploration.sql` → full cleaning + analysis + reporting queries
+- `images/` → representative query output screenshots
+
+---
+
+## Notes
+- Many source columns were imported as text and converted via cleaned views.
+- In this dataset, `total_deaths` behaved like a daily measure, so totals were calculated using `SUM()` where appropriate.
+- The final reporting view was created to support future visualization in tools like Tableau or Power BI.
